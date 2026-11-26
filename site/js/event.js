@@ -1,7 +1,7 @@
 import { sb, $, esc, requireLogin, fmtRange, fmtShort, dday, today, KIND, photoUrls, fullKey, thumbKey, ask, tell, toast, friendly } from './common.js';
 import { upload, QuotaError } from './photo.js';
 import { PHOTO_LIMIT } from './config.js';
-import { mapUrl, isWebLink } from './plan.js';
+import { mapUrl, isWebLink, isMapLink } from './plan.js';
 
 await requireLogin();
 
@@ -42,6 +42,14 @@ function heroHtml() {
   </div>`;
 }
 
+// 지도 버튼: link가 지도 주소면 그걸, 아니면 장소 이름으로 검색. 홈페이지 버튼: 지도가 아닌 link만.
+function linksHtml(it) {
+  const link = it.link && isWebLink(it.link) ? it.link : '';
+  const map = link && isMapLink(link) ? link : mapUrl(it.place, ev.destination, ev.country || '');
+  const a = (href, label) => `<a class="btn btn-outline" href="${esc(href)}" target="_blank" rel="noopener">${label}</a>`;
+  return a(map, '🗺 지도') + (link && !isMapLink(link) ? a(link, '🔗 홈페이지') : '');
+}
+
 function scheduleHtml() {
   const days = ev.days || [];
   if (!days.length) return `<p class="empty">아직 일정이 없어요.<br><a class="btn btn-primary" style="margin-top: 12px" href="paste.html?id=${id}">계획 붙여넣기</a></p>`;
@@ -51,8 +59,7 @@ function scheduleHtml() {
     <ul class="items">${(d.items || []).map(it => `<li><span class="time">${esc(it.time)}</span>
       <span><b>${esc(it.place)}</b>${it.memo ? `<br><span class="sub">${esc(it.memo)}</span>` : ''}
         <span class="links">
-          <a class="btn btn-outline" href="${esc(mapUrl(it.place, ev.destination, ev.country || ''))}" target="_blank" rel="noopener">🗺 지도</a>
-          ${it.link && isWebLink(it.link) ? `<a class="btn btn-outline" href="${esc(it.link)}" target="_blank" rel="noopener">🔗 홈페이지</a>` : ''}
+          ${linksHtml(it)}
         </span></span></li>`).join('')}</ul>
     ${d.alternative ? `<div class="alt">💡 <b>대안 코스</b><br>${esc(d.alternative)}</div>` : '<div style="height: 8px"></div>'}
   </details>`).join('');

@@ -1,6 +1,6 @@
 // 실행: node tests/plan.test.mjs
 import assert from 'node:assert/strict';
-import { checkPlan, diffChecklist, isWebLink, mapUrl } from '../site/js/plan.js';
+import { checkPlan, diffChecklist, isWebLink, isMapLink, mapUrl } from '../site/js/plan.js';
 
 const good = {
   version: 1,
@@ -61,6 +61,15 @@ assert.match(mapUrl('경포 해변', '강릉'), /^https:\/\/map\.naver\.com\/p\/
 assert.match(mapUrl('경포 해변', '강릉', '대한민국'), /map\.naver\.com/);
 assert.match(mapUrl('잔교', '칭다오', '중국'), /^https:\/\/www\.google\.com\/maps\/search\/\?api=1&query=/);
 assert.equal(mapUrl('강릉 중앙시장', '강릉'), 'https://map.naver.com/p/search/' + encodeURIComponent('강릉 중앙시장'));
+
+// 지도 주소 link는 지도 버튼으로, 나머지는 홈페이지로
+for (const u of ['https://www.google.com/maps/search/?api=1&query=%E9%9D%92%E5%B2%9B%E6%A0%88%E6%A1%A5',
+  'https://maps.google.com/?q=x', 'https://maps.app.goo.gl/abc', 'https://map.naver.com/p/search/x',
+  'https://m.map.naver.com/search?query=x', 'https://naver.me/abc', 'https://map.kakao.com/?q=x', 'https://place.map.kakao.com/123', 'https://www.google.co.kr/maps/place/x'])
+  assert.ok(isMapLink(u), u);
+for (const u of ['https://www.agoda.com/ko-kr/h86972823/hotel/qingdao-cn.html', 'https://www.google.com/search?q=maps',
+  'https://www.gn.go.kr/', 'https://evil.com/maps.google.com', 'not a url'])
+  assert.ok(!isMapLink(u), u);
 
 // 체크 상태 이어 붙이기 미리보기
 const d = diffChecklist(

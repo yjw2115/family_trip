@@ -13,6 +13,16 @@ export function isWebLink(s) {
   try { return ['http:', 'https:'].includes(new URL(s).protocol); } catch { return false; }
 }
 
+// 지도 서비스 주소인지 (그런 link는 홈페이지가 아니라 지도 버튼으로 쓴다)
+export function isMapLink(s) {
+  try {
+    const u = new URL(s), h = u.hostname.replace(/^www\./, '');
+    return /^maps\.google\.|^maps\.app\.goo\.gl$|^(m\.)?map\.naver\.com$|^naver\.me$|^(place\.)?map\.kakao\.com$|^kko\.to$/.test(h)
+      || (/^google\.[a-z.]+$/.test(h) && u.pathname.startsWith('/maps'))
+      || (h === 'goo.gl' && u.pathname.startsWith('/maps'));
+  } catch { return false; }
+}
+
 // 국내(비었거나 한국)면 네이버 지도, 해외면 구글 지도
 const KOREA = ['', '한국', '대한민국', '남한', 'korea', 'south korea', 'republic of korea', 'kr', 'kor'];
 export function mapUrl(place, destination = '', country = '') {
