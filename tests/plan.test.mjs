@@ -1,6 +1,6 @@
 // 실행: node tests/plan.test.mjs
 import assert from 'node:assert/strict';
-import { checkPlan, diffChecklist } from '../site/js/plan.js';
+import { checkPlan, diffChecklist, isWebLink, mapUrl } from '../site/js/plan.js';
 
 const good = {
   version: 1,
@@ -43,6 +43,24 @@ assert.ok(r.errors.some(e => e.includes('version')), r.errors);
 
 assert.ok(checkPlan('안녕').errors[0].includes('계획이 없어요'));
 assert.ok(checkPlan(JSON.stringify({ ...good, trip: { ...good.trip, endDate: '2026-12-01' } })).errors.some(e => e.includes('끝 날짜가')));
+
+// 링크와 나라
+const linked = structuredClone(good);
+linked.trip.country = '중국';
+linked.days[0].items[0].link = 'https://example.com/jan';
+r = checkPlan(JSON.stringify(linked));
+assert.equal(r.plan.trip.country, '중국');
+assert.equal(r.plan.days[1].items[0].link, 'https://example.com/jan');
+assert.equal('link' in r.plan.days[0].items[0], false); // 링크 없는 항목엔 칸을 만들지 않음
+linked.days[0].items[0].link = 'javascript:alert(1)';
+assert.ok(checkPlan(JSON.stringify(linked)).errors.some(e => e.includes('https://로 시작')));
+linked.days[0].items[0].link = 'www.example.com';
+assert.ok(checkPlan(JSON.stringify(linked)).errors.some(e => e.includes('https://로 시작')));
+assert.ok(!isWebLink('javascript:alert(1)') && isWebLink('http://a.kr'));
+assert.match(mapUrl('경포 해변', '강릉'), /^https:\/\/map\.naver\.com\/p\/search\/%EA%B0%95%EB%A6%89%20/);
+assert.match(mapUrl('경포 해변', '강릉', '대한민국'), /map\.naver\.com/);
+assert.match(mapUrl('잔교', '칭다오', '중국'), /^https:\/\/www\.google\.com\/maps\/search\/\?api=1&query=/);
+assert.equal(mapUrl('강릉 중앙시장', '강릉'), 'https://map.naver.com/p/search/' + encodeURIComponent('강릉 중앙시장'));
 
 // 체크 상태 이어 붙이기 미리보기
 const d = diffChecklist(

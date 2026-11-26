@@ -101,6 +101,8 @@ details.day summary .sub { display: block; font-weight: 400; }
 .items { list-style: none; margin: 0; padding: 0 16px; }
 .items li { display: flex; gap: 12px; padding: 12px 0; border-top: 1px solid var(--line); }
 .items .time { min-width: 3.4em; font-weight: 700; color: var(--primary); }
+.links { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.links .btn { min-height: 48px; padding: 0 14px; font-size: 1.0625rem; }
 .alt { margin: 4px 16px 16px; border: 2px solid var(--accent); border-radius: 12px; padding: 10px 14px; }
 
 /* 준비물 */

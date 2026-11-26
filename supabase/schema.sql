@@ -19,6 +19,7 @@ create table public.events (
   start_date date not null,
   end_date date check (end_date is null or end_date >= start_date),
   destination text not null default '',
+  country text not null default '',     -- 비었거나 한국이면 네이버 지도, 아니면 구글 지도
   stay text not null default '',
   people int check (people > 0),
   days jsonb not null default '[]',
@@ -105,9 +106,9 @@ declare
   items jsonb := coalesce(p_plan -> 'checklist', '[]');
 begin
   if p_event_id is null then
-    insert into public.events (kind, title, start_date, end_date, destination, stay, people, days)
+    insert into public.events (kind, title, start_date, end_date, destination, country, stay, people, days)
     values ('trip', t ->> 'title', (t ->> 'startDate')::date, nullif(t ->> 'endDate', '')::date,
-            coalesce(t ->> 'destination', ''), coalesce(t ->> 'stay', ''),
+            coalesce(t ->> 'destination', ''), coalesce(t ->> 'country', ''), coalesce(t ->> 'stay', ''),
             nullif(t ->> 'people', '')::int, coalesce(p_plan -> 'days', '[]'))
     returning id into v_id;
   else
@@ -116,6 +117,7 @@ begin
       start_date = (t ->> 'startDate')::date,
       end_date = nullif(t ->> 'endDate', '')::date,
       destination = coalesce(t ->> 'destination', ''),
+      country = coalesce(t ->> 'country', ''),
       stay = coalesce(t ->> 'stay', ''),
       people = nullif(t ->> 'people', '')::int,
       days = coalesce(p_plan -> 'days', '[]')

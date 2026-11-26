@@ -1,6 +1,7 @@
 import { sb, $, esc, requireLogin, fmtRange, fmtShort, dday, today, KIND, photoUrls, fullKey, thumbKey, ask, tell, toast, friendly } from './common.js';
 import { upload, QuotaError } from './photo.js';
 import { PHOTO_LIMIT } from './config.js';
+import { mapUrl, isWebLink } from './plan.js';
 
 await requireLogin();
 
@@ -48,7 +49,11 @@ function scheduleHtml() {
   return days.map((d, i) => `<details class="day"${i === openIdx ? ' open' : ''}>
     <summary>${i + 1}일차 · ${fmtShort(d.date)}${d.title ? `<span class="sub">${esc(d.title)}</span>` : ''}</summary>
     <ul class="items">${(d.items || []).map(it => `<li><span class="time">${esc(it.time)}</span>
-      <span><b>${esc(it.place)}</b>${it.memo ? `<br><span class="sub">${esc(it.memo)}</span>` : ''}</span></li>`).join('')}</ul>
+      <span><b>${esc(it.place)}</b>${it.memo ? `<br><span class="sub">${esc(it.memo)}</span>` : ''}
+        <span class="links">
+          <a class="btn btn-outline" href="${esc(mapUrl(it.place, ev.destination, ev.country || ''))}" target="_blank" rel="noopener">🗺 지도</a>
+          ${it.link && isWebLink(it.link) ? `<a class="btn btn-outline" href="${esc(it.link)}" target="_blank" rel="noopener">🔗 홈페이지</a>` : ''}
+        </span></span></li>`).join('')}</ul>
     ${d.alternative ? `<div class="alt">💡 <b>대안 코스</b><br>${esc(d.alternative)}</div>` : '<div style="height: 8px"></div>'}
   </details>`).join('');
 }

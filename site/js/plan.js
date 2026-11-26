@@ -8,6 +8,20 @@ function isDate(s) {
   return !isNaN(d) && d.toISOString().slice(0, 10) === s;
 }
 
+// 누를 수 있는 웹 주소인지 (javascript: 같은 주소는 막는다)
+export function isWebLink(s) {
+  try { return ['http:', 'https:'].includes(new URL(s).protocol); } catch { return false; }
+}
+
+// 국내(비었거나 한국)면 네이버 지도, 해외면 구글 지도
+const KOREA = ['', '한국', '대한민국', '남한', 'korea', 'south korea', 'republic of korea', 'kr', 'kor'];
+export function mapUrl(place, destination = '', country = '') {
+  const q = destination && !place.includes(destination) ? `${destination} ${place}` : place;
+  return KOREA.includes(country.trim().toLowerCase())
+    ? 'https://map.naver.com/p/search/' + encodeURIComponent(q)
+    : 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(q);
+}
+
 // 글자 칸: 없으면 '', 숫자는 글자로 바꾸고, 그 밖의 것은 오류
 function text(v, where, errors) {
   if (v === undefined || v === null) return '';
@@ -44,6 +58,7 @@ export function checkPlan(src) {
   const trip = {
     title: text(t.title, '여행 제목(title)', errors),
     destination: text(t.destination, '여행지(destination)', errors),
+    country: text(t.country, '나라(country)', errors),
     stay: text(t.stay, '숙소(stay)', errors),
     startDate: t.startDate,
     endDate: t.endDate,
@@ -77,6 +92,9 @@ export function checkPlan(src) {
       if (!it || typeof it !== 'object') { errors.push(`${iw} 형식이 이상해요.`); return null; }
       const item = { time: text(it.time, `${iw} 시간`, errors), place: text(it.place, `${iw} 장소`, errors), memo: text(it.memo, `${iw} 메모`, errors) };
       if (!item.place) errors.push(`${iw}에 "장소"(place)가 비어 있어요.`);
+      const link = text(it.link, `${iw} 링크`, errors);
+      if (link && !isWebLink(link)) errors.push(`${iw} 링크(link)는 https://로 시작하는 주소여야 해요 (지금: "${link}").`);
+      if (link) item.link = link;
       return item;
     }).filter(Boolean);
     days.push({ date: d.date, title: text(d.title, `${w} 제목`, errors), items, alternative: text(d.alternative, `${w} 대안 코스`, errors) });
