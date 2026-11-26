@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>휴지통 · 우리 가족 이야기</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="topbar"><a href="index.html">← 홈</a></div>
+<main>
+  <h1>휴지통</h1>
+  <p class="sub">지운 사진과 모임은 30일 뒤에 완전히 사라져요.</p>
+  <div id="list"><p class="sub">불러오는 중…</p></div>
+</main>
+<script type="module">
+import { sb, $, esc, requireLogin, fmtRange, KIND, photoUrls, thumbKey, purge, ask, toast, friendly } from './js/common.js';
+await requireLogin();
+
+const left = d => Math.max(0, 30 - Math.floor((Date.now() - new Date(d)) / 864e5));
+
+async function show() {
+  const [a, b] = await Promise.all([
+    sb.from('events').select('id,kind,title,start_date,end_date,deleted_at').not('deleted_at', 'is', null).order('deleted_at', { ascending: false }),
+    sb.from('photos').select('id,path,event_id,deleted_at').not('deleted_at', 'is', null).order('deleted_at', { ascending: false }),
+  ]);
+  if (a.error || b.error) { $('#list').innerHTML = `<p class="errors">${esc(friendly(a.error || b.error))}</p>`; return; }
+  const deadEvents = new Set(a.data.map(e => e.id));
+  const loose = b.data.filter(p => !deadEvents.has(p.event_id));
+  const count = id => b.data.filter(p => p.event_id === id).length;
+  const urls = await photoUrls(loose.map(p => thumbKey(p.path)));
+
+  if (!a.data.length && !loose.length) { $('#list').innerHTML = '<p class="empty">휴지통이 비어 있어요.</p>'; return; }
+  $('#list').innerHTML =
+    (a.data.length ? '<h2>지운 모임</h2>' + a.data.map(e => `<div class="trash-item">
+      <div class="noimg" style="width: 72px; height: 72px; display: flex; align-items: center; justify-content: center; font-size: 2rem; background: #DCE8F1; border-radius: 8px">${e.kind === 'trip' ? '✈' : '🎂'}</div>
+      <div class="info"><b>${esc(e.title)}</b><br><span class="sub">${fmtRange(e.start_date, e.end_date)} · 사진 ${count(e.id)}장<br>${left(e.deleted_at)}일 남음</span></div>
+      <button class="btn" data-event="${e.id}">되살리기</button></div>`).join('') : '') +
+    (loose.length ? '<h2>지운 사진</h2>' + loose.map(p => `<div class="trash-item">
+      <img src="${esc(urls[thumbKey(p.path)])}" alt="" loading="lazy">
+      <div class="info"><span class="sub">${left(p.deleted_at)}일 남음</span></div>
+      <button class="btn" data-photo="${p.id}">되살리기</button></div>`).join('') : '') +
+    '<button class="btn btn-danger btn-block" id="empty" style="margin-top: 32px">휴지통 비우기</button>';
+}
+
+$('#list').onclick = async e => {
+  const t = e.target.closest('button');
+  if (!t) return;
+  t.disabled = true;
+  let r;
+  if (t.dataset.event) r = await sb.rpc('restore_event', { p_id: Number(t.dataset.event) });
+  else if (t.dataset.photo) r = await sb.from('photos').update({ deleted_at: null }).eq('id', t.dataset.photo);
+  else if (t.id === 'empty') {
+    if (!await ask('휴지통을 비울까요?\n안에 있는 사진과 모임이 모두 완전히 사라져요.', '비우기', true) ||
+        !await ask('정말 비울까요?\n한 번 비우면 되살릴 수 없어요.', '완전히 비우기', true)) { t.disabled = false; return; }
+    t.textContent = '비우는 중…';
+    try {
+      const now = new Date().toISOString();
+      for (let i = 0; i < 100 && await purge(now, 100) > 0; i++);
+      toast('✓ 휴지통을 비웠어요');
+    } catch (err) { toast(friendly(err), true); }
+    return show();
+  }
+  if (r.error) { t.disabled = false; return toast(friendly(r.error), true); }
+  toast('✓ 되살렸어요');
+  show();
+};
+show();
+</script>
+</body>
+</html>

@@ -1,0 +1,18 @@
+# Supabase 무료 프로젝트는 일주일 동안 활동이 없으면 멈춘다. 월·목 아침에 한 번씩 깨운다.
+# (저장소에 60일 동안 push가 없으면 GitHub이 이 작업을 끈다 → README 참고)
+name: Supabase 깨우기
+on:
+  schedule:
+    - cron: '0 0 * * 1,4'   # 한국 시간 월·목 오전 9시
+  workflow_dispatch:
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: ping
+        run: |
+          URL=$(sed -n "s/^export const SUPABASE_URL = '\(.*\)';/\1/p" site/js/config.js)
+          KEY=$(sed -n "s/^export const SUPABASE_KEY = '\(.*\)';/\1/p" site/js/config.js)
+          curl -fsS -X POST "$URL/rest/v1/rpc/ping" \
+            -H "apikey: $KEY" -H "Content-Type: application/json" -d '{}'

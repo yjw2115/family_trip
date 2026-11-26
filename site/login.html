@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>우리 가족 이야기</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<main style="padding-top: 48px; text-align: center">
+  <div style="font-size: 3.5rem">🏠</div>
+  <h1>우리 가족 이야기</h1>
+  <form id="f" style="text-align: left">
+    <label for="pw">가족 암호를 입력해 주세요</label>
+    <div style="position: relative">
+      <input id="pw" type="password" autocomplete="current-password" required style="padding-right: 72px">
+      <button type="button" id="eye" class="link-btn" style="position: absolute; right: 4px; top: 4px" aria-label="암호 보이기">보기</button>
+    </div>
+    <p id="err" class="errors hidden" role="alert"></p>
+    <button class="btn btn-primary btn-block" style="margin-top: 16px">들어가기</button>
+  </form>
+  <p class="sub" style="margin-top: 24px">한 번 들어오면 이 휴대폰에서는 다시 묻지 않아요.</p>
+</main>
+<script type="module">
+import { sb, $ } from './js/common.js';
+import { FAMILY_EMAIL } from './js/config.js';
+
+const next = new URLSearchParams(location.search).get('next');
+const go = () => location.replace(next && next.startsWith('/') && !next.startsWith('//') ? next : 'index.html');
+if ((await sb.auth.getSession()).data.session) go();
+
+$('#eye').onclick = () => {
+  const show = $('#pw').type === 'password';
+  $('#pw').type = show ? 'text' : 'password';
+  $('#eye').textContent = show ? '숨기기' : '보기';
+};
+
+$('#f').onsubmit = async e => {
+  e.preventDefault();
+  const btn = e.submitter;
+  btn.disabled = true; btn.textContent = '확인하는 중…';
+  const { error } = await sb.auth.signInWithPassword({ email: FAMILY_EMAIL, password: $('#pw').value });
+  btn.disabled = false; btn.textContent = '들어가기';
+  if (!error) return go();
+  $('#err').textContent =
+    error.status === 400 ? '⚠ 암호가 달라요. 가족에게 물어봐 주세요.' :
+    error.status === 429 ? '⚠ 여러 번 틀렸어요. 잠시 후 다시 시도해 주세요.' :
+    '⚠ 연결이 안 돼요. 인터넷을 확인하고 다시 시도해 주세요.';
+  $('#err').classList.remove('hidden');
+};
+</script>
+</body>
+</html>
